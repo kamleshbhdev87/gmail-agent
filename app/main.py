@@ -83,3 +83,20 @@ async def root():
         },
         "github": "https://github.com/kamleshbhdev87/gmail-agent"
     }
+
+
+@app.get("/")
+async def root():
+    return {
+        "name": "Gmail Agent",
+        "description": "Autonomous Gmail agent — scores emails, drafts replies, sends WhatsApp briefing with human-in-the-loop approval",
+        "status": "running",
+        "stack": ["LangGraph", "Claude API", "FastAPI", "Gmail API", "Twilio WhatsApp", "ChromaDB", "Render"],
+        "endpoints": {
+            "POST /run-now": "Trigger agent manually",
+            "POST /webhook/whatsapp": "Twilio WhatsApp webhook",
+            "GET /health": "Health check",
+            "GET /followups": "View pending follow-ups"
+        },
+        "github": "https://github.com/kamleshbhdev87/gmail-agent"
+    }
