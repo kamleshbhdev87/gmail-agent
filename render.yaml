@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: email-intelligence-agent
+    env: python
+    region: singapore          # closest to SGT timezone
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    disk:
+      name: chroma-db
+      mountPath: /opt/render/project/src/chroma_db
+      sizeGB: 1
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GMAIL_CLIENT_ID
+        sync: false
+      - key: GMAIL_CLIENT_SECRET
+        sync: false
+      - key: GMAIL_REFRESH_TOKEN
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        sync: false
+      - key: YOUR_WHATSAPP_NUMBER
+        sync: false
+      - key: CHROMA_PERSIST_DIR
+        value: /opt/render/project/src/chroma_db
