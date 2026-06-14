@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from app.agent.graph import agent_graph
+from app.agent.nodes import execute_action, update_memory
 from app.agent.state import AgentState
 from app.scheduler import start_scheduler
 from app.tools.whatsapp_tool import parse_whatsapp_reply
@@ -35,17 +36,12 @@ async def lifespan(app: FastAPI):
     start_scheduler()
     yield
 
-app = FastAPI(
-    title="Gmail Agent",
-    version="1.0.0",
-    lifespan=lifespan
-)
+app = FastAPI(title="Gmail Agent", version="1.0.0", lifespan=lifespan)
 
 @app.get("/")
 async def root():
     return {
         "name": "Gmail Agent",
-        "description": "Autonomous Gmail agent — scores emails, drafts replies, sends WhatsApp briefing with human-in-the-loop approval",
         "status": "running",
         "stack": ["LangGraph", "Claude API", "FastAPI", "Gmail API", "Twilio WhatsApp", "ChromaDB", "Render"],
         "endpoints": {
@@ -81,20 +77,29 @@ async def whatsapp_webhook(request: Request):
     form_data = await request.form()
     reply_text = parse_whatsapp_reply(dict(form_data))
 
+    print(f"[webhook] Received reply: {reply_text}")
+
     if not reply_text:
         return JSONResponse({"status": "empty_reply"})
 
     state = load_session()
     if not state:
+        print("[webhook] No active session found")
         return JSONResponse({"status": "no_active_session"}, status_code=404)
 
+    print(f"[webhook] Session loaded — {len(state.get('important_emails', []))} emails")
+    print(f"[webhook] Draft reply present: {bool(state.get('important_emails', [{}])[0].get('draft_reply') if state.get('important_emails') else False)}")
+
     state["whatsapp_reply"] = reply_text
-    result = agent_graph.invoke(state, config={"recursion_limit": 10})
+
+    # Call nodes directly — skip the full graph re-run
+    state = execute_action(state)
+    state = update_memory(state)
     clear_session()
 
     return JSONResponse({
         "status": "processed",
-        "actions_taken": result.get("actions_taken", [])
+        "actions_taken": state.get("actions_taken", [])
     })
 
 @app.get("/health")
