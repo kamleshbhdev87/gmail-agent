@@ -228,3 +228,10 @@ def update_memory(state: AgentState) -> AgentState:
         )
     print(f"[update_memory] Saved {len(state['important_emails'])} threads to memory")
     return state
+
+
+def debug_scores(state: AgentState) -> AgentState:
+    """Debug endpoint — print all email scores."""
+    for e in state["emails"]:
+        print(f"Score {e['priority_score']} | {e['subject']} | {e['sender']}")
+    return state

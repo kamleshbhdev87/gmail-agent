@@ -100,3 +100,35 @@ async def root():
         },
         "github": "https://github.com/kamleshbhdev87/gmail-agent"
     }
+
+
+@app.get("/debug-scores")
+async def debug_scores():
+    """Fetch and score emails without sending WhatsApp — for debugging."""
+    from app.tools.gmail_tool import fetch_recent_emails
+    from app.agent.nodes import score_emails, filter_important
+    state = {
+        "emails": [],
+        "important_emails": [],
+        "briefing_text": "",
+        "whatsapp_reply": None,
+        "actions_taken": [],
+        "run_id": "debug"
+    }
+    from app.tools.gmail_tool import fetch_recent_emails
+    state["emails"] = fetch_recent_emails(max_results=10)
+    state = score_emails(state)
+    for e in state["emails"]:
+        print(f"Score {e['priority_score']} | {e['subject']} | {e['sender']}")
+    return {
+        "total": len(state["emails"]),
+        "scores": [
+            {
+                "score": e["priority_score"],
+                "subject": e["subject"],
+                "sender": e["sender"],
+                "reason": e["priority_reason"]
+            }
+            for e in state["emails"]
+        ]
+    }
