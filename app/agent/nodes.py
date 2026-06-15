@@ -42,7 +42,7 @@ def score_emails(state: AgentState) -> AgentState:
                 "needs_reply": result.get("needs_reply", False),
                 "draft_reply": None
             })
-        except json.JSONDecodeError:
+        except (json.JSONDecodeError, Exception):
             scored.append({
                 **email,
                 "priority_score": 1,
@@ -163,7 +163,16 @@ def execute_action(state: AgentState) -> AgentState:
         state["actions_taken"] = ["session_ended"]
         return state
 
-    commands = reply.splitlines()
+    # Handle multiline edit command — first line is "edit N", rest is the body
+    lines = reply.splitlines()
+    first_line = lines[0].strip() if lines else ""
+    rest_of_message = "\n".join(lines[1:]).strip() if len(lines) > 1 else ""
+
+    # If first line is "edit N" and rest is the body, combine them
+    if first_line.startswith("edit ") and rest_of_message and len(first_line.split()) == 2:
+        reply = f"{first_line} {rest_of_message}"
+
+    commands = [reply] if "\n" not in reply else reply.splitlines()
 
     for cmd in commands:
         cmd = cmd.strip()
@@ -199,6 +208,7 @@ def execute_action(state: AgentState) -> AgentState:
                 idx = int(parts[1]) - 1
                 custom_text = parts[2] if len(parts) > 2 else ""
                 email = state["important_emails"][idx]
+                print(f"[execute_action] edit cmd={cmd[:50]} custom_text={custom_text[:50] if custom_text else 'EMPTY'}")
                 if custom_text:
                     send_email(
                         to=email["sender"],
